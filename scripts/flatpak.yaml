@@ -68,7 +68,7 @@ modules:
 
       - name: libdisplay-info
         cleanup:
-          - /bin/di-edid-decode
+          - /bin
         buildsystem: meson
         sources:
           - type: archive
