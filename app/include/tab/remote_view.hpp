@@ -5,12 +5,9 @@
 #pragma once
 
 #include <view/auto_tab_frame.hpp>
-#include <client/client.hpp>
 #include <utils/ums.hpp>
 
 class RecyclingGrid;
-
-using DirList = std::vector<remote::DirEntry>;
 
 class RemoteView : public AttachedView {
 public:

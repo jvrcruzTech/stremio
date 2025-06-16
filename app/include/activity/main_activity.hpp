@@ -17,7 +17,8 @@
 #pragma once
 
 #include <borealis.hpp>
-#include <api/websocket.hpp>
+#include "tab/server_login.hpp"
+#include "api/libstremio.hpp"
 
 class MainActivity : public brls::Activity {
 public:
@@ -29,5 +30,5 @@ public:
     void onContentAvailable() override;
 
 private:
-    std::unique_ptr<websocket> ws;
+
 };

@@ -6,13 +6,13 @@
 
 #include <borealis.hpp>
 #include <utils/event.hpp>
-#include <api/jellyfin/media.hpp>
+#include <stream.hpp>
 
 class VideoView;
 
 class PlayerView : public brls::Box {
 public:
-    PlayerView(const jellyfin::Item& item, const uint64_t seekTicks = 0);
+    PlayerView(Stream stream, const uint64_t seekTicks = 0);
     ~PlayerView();
 
     void setSeries(const std::string& seriesId);
@@ -34,7 +34,7 @@ private:
     /// @brief DirectPlay, Transcode
     std::string playMethod;
     std::string playSessionId;
-    jellyfin::Source stream;
+    Stream stream;
     std::vector<jellyfin::Episode> episodes;
 
     MPVEvent::Subscription eventSubscribeID;

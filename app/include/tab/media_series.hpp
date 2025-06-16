@@ -5,7 +5,6 @@
 #pragma once
 
 #include <borealis.hpp>
-#include <api/jellyfin/media.hpp>
 #include <view/presenter.hpp>
 
 class AutoTabFrame;

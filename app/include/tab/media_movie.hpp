@@ -6,7 +6,6 @@
 
 #include <borealis.hpp>
 #include <view/presenter.hpp>
-#include <api/jellyfin/media.hpp>
 
 class HRecyclerFrame;
 class TextBox;

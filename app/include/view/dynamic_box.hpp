@@ -4,10 +4,10 @@
 
 class HRecyclerContentBox;
 
-class HRecyclerFrame : public brls::HScrollingFrame, public RecyclingView {
+class DynamicBox : public brls::HScrollingFrame, public RecyclingView {
 public:
-    HRecyclerFrame();
-    ~HRecyclerFrame();
+    DynamicBox();
+    ~DynamicBox();
 
     View* getNextCellFocus(brls::FocusDirection direction, View* currentView) override;
     void draw(NVGcontext* vg, float x, float y, float width, float height, brls::Style style,

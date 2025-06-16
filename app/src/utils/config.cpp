@@ -448,33 +448,6 @@ void AppConfig::save() {
     }
 }
 
-bool AppConfig::checkLogin() {
-    auto is_user = [this](const AppUser& u) { return u.id == this->user_id; };
-    this->user = std::find_if(this->users.begin(), this->users.end(), is_user);
-    if (this->user == this->users.end()) return false;
-
-    auto is_server = [this](const AppServer& s) { return s.id == this->user->server_id; };
-    auto it = std::find_if(this->servers.begin(), this->servers.end(), is_server);
-    if (it == this->servers.end()) return false;
-
-    this->server_url = it->urls.front();
-    HTTP::Header header = {this->getDevice(this->user->access_token)};
-    std::string uri = this->server_url + jellyfin::apiInfo;
-    try {
-        std::string resp = HTTP::get(uri, header, HTTP::Timeout{});
-        jellyfin::PublicSystemInfo info = nlohmann::json::parse(resp);
-        this->addServer(AppServer{
-            .name = info.ServerName,
-            .id = info.Id,
-            .version = info.Version,
-        });
-        return true;
-    } catch (const std::exception& ex) {
-        brls::Logger::warning("AppConfig {} checkLogin: {}", this->server_url, ex.what());
-        return false;
-    }
-}
-
 bool AppConfig::checkDanmuku() {
     jellyfin::getJSON<jellyfin::PluginList>(
         [](const jellyfin::PluginList& plugins) {
@@ -568,70 +541,6 @@ int AppConfig::getValueIndex(const Item item, int default_index) const {
     return default_index;
 }
 
-bool AppConfig::addServer(const AppServer& s) {
-    if (s.urls.size() > 0) {
-        this->server_url = s.urls.front();
-    }
-
-    for (auto& o : this->servers) {
-        if (s.id == o.id) {
-            if (!s.name.empty()) o.name = s.name;
-            if (!s.version.empty()) o.version = s.version;
-            // remove old url
-            for (auto it = o.urls.begin(); it != o.urls.end(); ++it) {
-                if (it->compare(this->server_url) == 0) {
-                    it = o.urls.erase(it);
-                    break;
-                }
-            }
-            o.urls.insert(o.urls.begin(), this->server_url);
-            this->save();
-            return true;
-        }
-    }
-    this->servers.push_back(s);
-    this->save();
-    return false;
-}
-
-void AppConfig::addUser(const AppUser& u, const std::string& url) {
-    auto is_user = [u](const AppUser& o) { return o.id == u.id; };
-    auto it = std::find_if(this->users.begin(), this->users.end(), is_user);
-    if (it != this->users.end()) {
-        it->name = u.name;
-        it->access_token = u.access_token;
-        it->server_id = u.server_id;
-    } else {
-        it = this->users.insert(it, u);
-    }
-    this->server_url = url;
-    this->user_id = u.id;
-    this->user = it;
-    this->save();
-}
-
-bool AppConfig::removeServer(const std::string& id) {
-    for (auto it = this->servers.begin(); it != this->servers.end(); ++it) {
-        if (it->id == id) {
-            this->servers.erase(it);
-            this->save();
-            return this->servers.empty();
-        }
-    }
-    return false;
-}
-
-bool AppConfig::removeUser(const std::string& id) {
-    for (auto it = this->users.begin(); it != this->users.end(); ++it) {
-        if (it->id == id) {
-            this->users.erase(it);
-            this->save();
-            return true;
-        }
-    }
-    return false;
-}
-
 std::string AppConfig::getDevice(const std::string& token) {
     if (token.empty())
         return fmt::format(
@@ -644,12 +553,28 @@ std::string AppConfig::getDevice(const std::string& token) {
             AppVersion::getPackageName(), AppVersion::getDeviceName(), this->device, AppVersion::getVersion(), token);
 }
 
-const std::vector<AppUser> AppConfig::getUsers(const std::string& id) const {
-    std::vector<AppUser> users;
-    for (auto& u : this->users) {
-        if (u.server_id == id) {
-            users.push_back(u);
-        }
+void AppConfig::setUser(const AppUser& u) {
+    this->user = u;
+    this->save();
+
+}
+
+bool AppConfig::removeUser(const std::string& email) {
+    user = AppUser{};
+    this->save();
+    
+    brls::Logger::warning("AppConfig::removeUser: user {} not found", email);
+    return true;
+}
+
+AppUser AppConfig::getUser() const {
+    return this->user;
+}
+
+bool AppConfig::checkLogin() {
+    if (this->user.email.empty() || this->user.passwd.empty()) {
+        brls::Logger::warning("AppConfig::checkLogin: user not logged in");
+        return false;
     }
-    return users;
+    return true;
 }

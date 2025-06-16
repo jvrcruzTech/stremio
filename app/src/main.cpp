@@ -2,14 +2,12 @@
 
 #include "utils/config.hpp"
 #include "utils/thread.hpp"
-#include "api/analytics.hpp"
 
 #include "view/svg_image.hpp"
 #include "view/custom_button.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "view/recycling_grid.hpp"
-#include "view/h_recycling.hpp"
-#include "view/recyling_video.hpp"
+#include "view/dynamic_box.hpp"
 #include "view/video_progress_slider.hpp"
 #include "view/gallery_view.hpp"
 #include "view/search_list.hpp"
@@ -83,8 +81,7 @@ int main(int argc, char* argv[]) {
     brls::Application::registerXMLView("ButtonClose", ButtonClose::create);
     brls::Application::registerXMLView("AutoTabFrame", AutoTabFrame::create);
     brls::Application::registerXMLView("RecyclingGrid", RecyclingGrid::create);
-    brls::Application::registerXMLView("HRecyclerFrame", HRecyclerFrame::create);
-    brls::Application::registerXMLView("RecylingVideo", RecylingVideo::create);
+    brls::Application::registerXMLView("DynamicBox", DynamicBox::create);
     brls::Application::registerXMLView("GalleryView", GalleryView::create);
     brls::Application::registerXMLView("SearchList", SearchList::create);
     brls::Application::registerXMLView("VideoProgressSlider", VideoProgressSlider::create);
@@ -126,13 +123,6 @@ int main(int argc, char* argv[]) {
         //brls::View* view = new VideoView(itemId);
         //brls::sync([view]() { brls::Application::giveFocus(view); });
     }
-
-    GA("open_app",
-        {
-            {"version", AppVersion::getVersion()},
-            {"language", brls::Application::getLocale()},
-            {"resolution", fmt::format("{}x{}", brls::Application::windowWidth, brls::Application::windowHeight)},
-        })
 
     std::string v = conf.getItem(AppConfig::APP_UPDATE, std::string("NaN"));
     if (AppVersion::getVersion().compare(v)) AppVersion::checkUpdate();

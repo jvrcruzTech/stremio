@@ -8,19 +8,13 @@ MainActivity::MainActivity() {
     auto& conf = AppConfig::instance();
     conf.checkDanmuku();
 
-    std::string query = HTTP::encode_form({
-        {"api_key", conf.getToken()},
-        {"deviceId", conf.getDeviceId()},
-    });
-
-    std::string url = fmt::format("{}/socket?{}", "ws" + conf.getUrl().substr(4), query);
-    this->ws = std::make_unique<websocket>(url);
 }
 
 void MainActivity::onContentAvailable() {
-    if (AppConfig::instance().getRemotes().empty()) {
+    StremioAPI::init();
+    if (!AppConfig::instance().checkLogin()) {
         // Hide the remote tab if there are no remotes
-        brls::View* tab = this->getView("tab/remote");
+        brls::View* tab = this->getView("tab/server_login");
         if (tab) tab->setVisibility(brls::Visibility::GONE);
     }
 }

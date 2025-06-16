@@ -5,8 +5,9 @@
 #pragma once
 
 #include <borealis.hpp>
+#include <stream.hpp>
+#include <view/dynamic_box.hpp>
 
-class HRecyclerFrame;
 
 class SearchList : public brls::Box {
 public:
@@ -19,8 +20,8 @@ public:
 
 private:
     BRLS_BIND(brls::Header, title, "recycler/title");
-    BRLS_BIND(HRecyclerFrame, recycler, "recycler/videos");
-    
+    BRLS_BIND(DynamicBox, recycler, "recycler/list");   
+
     std::string itemType;
     size_t pageSize = 10;
 };

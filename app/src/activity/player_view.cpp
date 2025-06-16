@@ -178,199 +178,35 @@ bool PlayerView::playIndex(int index) {
 }
 
 void PlayerView::playMedia(const uint64_t seekTicks) {
-#if defined(__PS4__)
-    int maxAllowedHeight = 1080;
-#elif defined(__PSV__)
-    int maxAllowedHeight = 720;
-#else
-    int maxAllowedHeight = brls::Application::windowHeight;
-    if (MPVCore::VIDEO_QUALITY <= 0) {
-    } else if (MPVCore::VIDEO_QUALITY <= 420000) {
-        maxAllowedHeight = 360;
-    } else if (MPVCore::VIDEO_QUALITY <= 720000) {
-        maxAllowedHeight = 480;
-    } else if (MPVCore::VIDEO_QUALITY <= 4000000) {
-        maxAllowedHeight = 720;
-    } else if (MPVCore::VIDEO_QUALITY <= 8000000) {
-        maxAllowedHeight = 1080;
-    } else if (MPVCore::VIDEO_QUALITY <= 15000000) {
-        maxAllowedHeight = 1440;
-    } else if (MPVCore::VIDEO_QUALITY <= 120000000) {
-        maxAllowedHeight = 2160;
+    auto& mpv = MPVCore::instance();
+    this->playMethod = jellyfin::methodDirectPlay;
+    this->stream = item.GetStream(mpv.VIDEO_CODEC, mpv.VO, mpv.HARDWARE_DEC, mpv.LOW_QUALITY);
+
+    if (this->stream.Id.empty()) {
+        Dialog::show("video/play/no_stream"_i18n);
+        return;
     }
-#endif
-    nlohmann::json conditions = {
-#if defined(__PSV__)
-        {
-            {"Condition", "EqualsAny"},
-            {"Property", "VideoProfile"},
-            {"Value", "high|main|baseline"},
-            {"IsRequired", false},
-        },
-        {
-            {"Condition", "LessThanEqual"},
-            {"Property", "VideoLevel"},
-            {"Value", 40},
-            {"IsRequired", false},
-        },
-#endif
-        {
-            {"Condition", "LessThanEqual"},
-            {"Property", "Height"},
-            {"Value", maxAllowedHeight},
-            {"IsRequired", false},
-        },
-    };
 
-    nlohmann::json profile = {
-        {"MaxStreamingBitrate", (MPVCore::VIDEO_QUALITY <= 0) ? 120000000 : MPVCore::VIDEO_QUALITY},
-        {
-            "DirectPlayProfiles",
-            {
-                {
-                    {"Type", "Audio"},
-#if defined(__PSV__)
-                    {"AudioCodec", "aac,mp3"},
-#endif
-                },
-                {
-                    {"Type", "Video"},
-#ifdef __SWITCH__
-                    {"VideoCodec", "h264,hevc,av1,vp9"},
-#elif defined(__PSV__)
-                    {"AudioCodec", "aac,mp3"},
-                    {"VideoCodec", "h264"},
-#endif
-                },
-            },
-        },
-#if defined(__PSV__)
-        {
-            "CodecProfiles",
-            {
-                {
-                    {"Type", "Video"},
-                    {"Codec", "h264"},
-                    {"Conditions", conditions},
-                },
-            },
-        },
-#endif
-        {
-            "TranscodingProfiles",
-            {
-                {{"Type", "Audio"}},
-                {
-                    {"Container", "ts"},
-                    {"Type", "Video"},
-#if defined(__PSV__)
-                    {"VideoCodec", "h264"},
-                    {"AudioCodec", "aac,mp3"},
-#else
-                    {"VideoCodec", MPVCore::VIDEO_CODEC + ",mpeg4,mpeg2video"},
-                    {"AudioCodec", "aac,mp3,ac3,opus,vorbis"},
-#endif
-                    {"Protocol", "hls"},
-                    {"Conditions", conditions},
-                },
-            },
-        },
-        {
-            "SubtitleProfiles",
-            {
-                {{"Format", "srt"}, {"Method", "External"}},
-                {{"Format", "srt"}, {"Method", "Embed"}},
-                {{"Format", "ass"}, {"Method", "External"}},
-                {{"Format", "ass"}, {"Method", "Embed"}},
-                {{"Format", "ssa"}, {"Method", "External"}},
-                {{"Format", "ssa"}, {"Method", "Embed"}},
-                {{"Format", "sub"}, {"Method", "External"}},
-                {{"Format", "sub"}, {"Method", "Embed"}},
-                {{"Format", "smi"}, {"Method", "External"}},
-                {{"Format", "smi"}, {"Method", "Embed"}},
-                {{"Format", "vtt"}, {"Method", "External"}},
-                {{"Format", "dvdsub"}, {"Method", "Embed"}},
-                {{"Format", "dvbsub"}, {"Method", "Embed"}},
-                {{"Format", "pgssub"}, {"Method", "Embed"}},
-                {{"Format", "pgs"}, {"Method", "Embed"}},
-            },
-        },
-    };
 
-    brls::Logger::debug("PlaybackInfo Audio:{} Sub:{}", PlayerSetting::selectedAudio, PlayerSetting::selectedSubtitle);
+    view->setTitie(item.Name);
+    view->setList({});
 
-    ASYNC_RETAIN
-    jellyfin::postJSON(
-        {
-            {"UserId", AppConfig::instance().getUserId()},
-            {"MediaSourceId", this->itemId},
-            {"AudioStreamIndex", PlayerSetting::selectedAudio},
-            {"SubtitleStreamIndex", PlayerSetting::selectedSubtitle},
-#if defined(__PSV__)
-            {"AlwaysBurnInSubtitleWhenTranscoding", true},
-#endif
-            {"AllowAudioStreamCopy", true},
-            {"DeviceProfile", profile},
-        },
-        [ASYNC_TOKEN, seekTicks](const jellyfin::PlaybackResult& r) {
-            ASYNC_RELEASE
+    brls::sync([&mpv, this, seekTicks]() {
+        mpv.setUrl(this->stream.DirectStreamUrl, "", "replace", 0);
+        if (seekTicks > 0) {
+            mpv.seek(seekTicks / jellyfin::PLAYTICKS, "absolute");
+        }
+        mpv.command("set_property", "pause", "no");
+        mpv.command("set_property", "sid", PlayerSetting::selectedSubtitle);
+        mpv.command("set_property", "aid", PlayerSetting::selectedAudio);
+        mpv.command("set_property", "volume", std::to_string(view->getVolume()).c_str());
+        mpv.command("set_property", "video-rotate", std::to_string(view->getRotate()).c_str());
+        if (MPVCore::SUBS_FALLBACK) {
+            mpv.command("sub-select", "auto");
+        }
+    });
 
-            if (r.MediaSources.empty()) {
-                Dialog::show(r.ErrorCode, []() { VideoView::close(); });
-                return;
-            }
-
-            auto& mpv = MPVCore::instance();
-            auto& svr = AppConfig::instance().getUrl();
-            this->playSessionId = r.PlaySessionId;
-
-            for (auto& item : r.MediaSources) {
-                std::stringstream ssextra;
-#ifdef _DEBUG
-                for (auto& s : item.MediaStreams) {
-                    brls::Logger::info("Track {} type {} => {}", s.Index, s.Type, s.DisplayTitle);
-                }
-#endif
-                ssextra << fmt::format("network-timeout={}", HTTP::TIMEOUT / 100);
-                if (seekTicks > 0) ssextra << ",start=" << misc::sec2Time(seekTicks / jellyfin::PLAYTICKS);
-
-                if (item.Protocol == "Http" && !item.SupportsDirectPlay) {
-                    mpv.setUrl(item.Path, ssextra.str());
-                    this->stream = std::move(item);
-                    return;
-                }
-
-                if (HTTP::PROXY_STATUS) ssextra << ",http-proxy=\"" << HTTP::PROXY << "\"";
-
-                if (item.SupportsDirectPlay || MPVCore::FORCE_DIRECTPLAY) {
-                    std::string url = fmt::format(fmt::runtime(jellyfin::apiStream), this->itemId,
-                        HTTP::encode_form({
-                            {"static", "true"},
-                            {"mediaSourceId", item.Id},
-                            {"playSessionId", r.PlaySessionId},
-                            {"tag", item.ETag},
-                        }));
-                    this->playMethod = jellyfin::methodDirectPlay;
-                    mpv.setUrl(svr + url, ssextra.str());
-                    this->stream = std::move(item);
-                    return;
-                }
-
-                if (item.SupportsTranscoding) {
-                    this->playMethod = jellyfin::methodTranscode;
-                    mpv.setUrl(svr + item.TranscodingUrl, ssextra.str());
-                    this->stream = std::move(item);
-                    return;
-                }
-            }
-
-            VideoView::close();
-        },
-        [ASYNC_TOKEN](const std::string& ex) {
-            ASYNC_RELEASE
-            Dialog::show(ex, []() { VideoView::close(); });
-        },
-        jellyfin::apiPlayback, this->itemId);
+    this->reportStart();
 }
 
 void PlayerView::reportStart() {

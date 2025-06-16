@@ -3,7 +3,6 @@
 #include "tab/media_collection.hpp"
 #include "tab/media_series.hpp"
 #include "tab/media_movie.hpp"
-#include "tab/music_album.hpp"
 #include "tab/playlist.hpp"
 #include "utils/misc.hpp"
 #include "view/svg_image.hpp"
@@ -80,38 +79,24 @@ RecyclingGridItem* VideoDataSource::cellForRow(RecyclingView* recycler, size_t i
 }
 
 void VideoDataSource::onItemSelected(brls::Box* recycler, size_t index) {
-    auto& item = this->list.at(index);
+    Meta& item = this->list.at(index);
 
-    if (item.Type == jellyfin::mediaTypeSeries) {
+    if (item.getType() == jellyfin::mediaTypeSeries) {
         recycler->present(new MediaSeries(item));
-    } else if (item.Type == jellyfin::mediaTypeMovie) {
+    } else if (item.getType() == jellyfin::mediaTypeMovie) {
         if (this->resume) {
             PlayerView* view = new PlayerView(item);
-            view->setTitie(item.ProductionYear ? fmt::format("{} ({})", item.Name, item.ProductionYear) : item.Name);
+            view->setTitie(item.ProductionYear ? fmt::format("{} ({})", item, item.ProductionYear) : item.Name);
         } else {
             recycler->present(new MediaMovie(item));
         }
-    } else if (item.Type == jellyfin::mediaTypeFolder || item.Type == jellyfin::mediaTypeBoxSet ||
-               item.Type == jellyfin::mediaTypePhotoAlbum) {
-        recycler->present(new MediaCollection(item.Id));
-    } else if (item.Type == jellyfin::mediaTypeMusicVideo || item.Type == jellyfin::mediaTypeVideo) {
-        PlayerView* view = new PlayerView(item);
-        view->setTitie(item.ProductionYear ? fmt::format("{} ({})", item.Name, item.ProductionYear) : item.Name);
-    } else if (item.Type == jellyfin::mediaTypeEpisode) {
-        PlayerView* view = new PlayerView(item);
-        view->setTitie(fmt::format("S{}E{} - {}", item.ParentIndexNumber, item.IndexNumber, item.Name));
-        view->setSeries(item.SeriesId);
-    } else if (item.Type == jellyfin::mediaTypeMusicAlbum) {
-        recycler->present(new MusicAlbum(item));
-    } else if (item.Type == jellyfin::mediaTypePlaylist) {
-        recycler->present(new Playlist(item));
-    } else if (item.Type == jellyfin::mediaTypePhoto) {
+    } else if (item.getType() == jellyfin::mediaTypePhoto) {
         auto& conf = AppConfig::instance();
         std::string query = HTTP::encode_form({{"api_key", conf.getToken()}});
-        std::string url = conf.getUrl() + fmt::format(fmt::runtime(jellyfin::apiDownload), item.Id, query);
+        std::string url = conf.getUrl() + fmt::format(fmt::runtime(jellyfin::apiDownload), item.getId(), query);
         brls::Application::pushActivity(new GalleryActivity(url));
     } else {
-        auto dialog = new brls::Dialog(fmt::format("Unsupported media type: {}", item.Type));
+        auto dialog = new brls::Dialog(fmt::format("Unsupported media type: {}", item.getType()));
         dialog->addButton("hints/cancel"_i18n, []() {});
         dialog->open();
     }
@@ -119,6 +104,6 @@ void VideoDataSource::onItemSelected(brls::Box* recycler, size_t index) {
 
 void VideoDataSource::clearData() { this->list.clear(); }
 
-void VideoDataSource::appendData(const MediaList& data) {
+void VideoDataSource::appendData(std::list<Meta> data) {
     this->list.insert(this->list.end(), data.begin(), data.end());
 }

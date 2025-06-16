@@ -2,6 +2,7 @@
 
 #include <view/recycling_grid.hpp>
 #include <api/jellyfin/media.hpp>
+#include <meta.hpp>
 
 class VideoDataSource : public RecyclingGridDataSource {
 public:
@@ -17,9 +18,9 @@ public:
 
     void clearData() override;
 
-    void appendData(const MediaList& data);
+    void appendData(list<Meta> data);
 
 protected:
-    MediaList list;
+    vector<Meta> list;
     bool resume;
 };

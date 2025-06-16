@@ -14,6 +14,7 @@ public:
     bool onSignin();
 
 private:
+
     BRLS_BIND(brls::Header, hdrSigin, "server/sigin_to");
     BRLS_BIND(brls::InputCell, inputUser, "server/user");
     BRLS_BIND(brls::InputCell, inputPass, "server/pass");

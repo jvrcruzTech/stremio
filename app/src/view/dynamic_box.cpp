@@ -1,6 +1,6 @@
 #include "view/h_recycling.hpp"
 
-brls::View* HRecyclerFrame::getNextCellFocus(brls::FocusDirection direction, brls::View* currentView) {
+brls::View* DynamicBox::getNextCellFocus(brls::FocusDirection direction, brls::View* currentView) {
     void* parentUserData = currentView->getParentUserData();
 
     // Return nullptr immediately if focus direction mismatches the box axis (clang-format refuses to split it in multiple lines...)
@@ -38,8 +38,8 @@ brls::View* HRecyclerFrame::getNextCellFocus(brls::FocusDirection direction, brl
     return currentFocus;
 }
 
-HRecyclerFrame::HRecyclerFrame() {
-    brls::Logger::debug("View HRecyclerFrame: create");
+DynamicBox::DynamicBox() {
+    brls::Logger::debug("View DynamicBox: create");
 
     this->setFocusable(false);
     this->setScrollingBehavior(brls::ScrollingBehavior::CENTERED);
@@ -62,8 +62,8 @@ HRecyclerFrame::HRecyclerFrame() {
     this->showSkeleton();
 }
 
-HRecyclerFrame::~HRecyclerFrame() {
-    brls::Logger::debug("View HRecyclerFrame: delete");
+DynamicBox::~DynamicBox() {
+    brls::Logger::debug("View DynamicBox: delete");
 
     if (this->dataSource) delete dataSource;
 
@@ -73,12 +73,12 @@ HRecyclerFrame::~HRecyclerFrame() {
     }
 }
 
-brls::View* HRecyclerFrame::getDefaultFocus() {
+brls::View* DynamicBox::getDefaultFocus() {
     if (this->dataSource && this->dataSource->getItemCount() > 0) return HScrollingFrame::getDefaultFocus();
     return nullptr;
 }
 
-void HRecyclerFrame::setDataSource(RecyclingGridDataSource* source) {
+void DynamicBox::setDataSource(RecyclingGridDataSource* source) {
     if (this->dataSource) delete this->dataSource;
 
     // 允许自动加载下一页
@@ -87,14 +87,14 @@ void HRecyclerFrame::setDataSource(RecyclingGridDataSource* source) {
     if (layouted) reloadData();
 }
 
-void HRecyclerFrame::clearData() {
+void DynamicBox::clearData() {
     if (dataSource) {
         dataSource->clearData();
         this->reloadData();
     }
 }
 
-void HRecyclerFrame::reloadData() {
+void DynamicBox::reloadData() {
     if (!layouted) return;
 
     auto children = this->contentBox->getChildren();
@@ -124,7 +124,7 @@ void HRecyclerFrame::reloadData() {
     }
 }
 
-void HRecyclerFrame::notifyDataChanged() {
+void DynamicBox::notifyDataChanged() {
     // todo: 目前仅能处理data在原本的基础上增加的情况，需要考虑data减少或更换时的情况
     if (!layouted) return;
 
@@ -134,7 +134,7 @@ void HRecyclerFrame::notifyDataChanged() {
     }
 }
 
-void HRecyclerFrame::selectRowAt(size_t index, bool animated) {
+void DynamicBox::selectRowAt(size_t index, bool animated) {
     this->setContentOffsetX(getWidthByCellIndex(index), animated);
     this->cellsRecyclingLoop();
 
@@ -146,12 +146,12 @@ void HRecyclerFrame::selectRowAt(size_t index, bool animated) {
     }
 }
 
-float HRecyclerFrame::getWidthByCellIndex(size_t index, size_t start) {
+float DynamicBox::getWidthByCellIndex(size_t index, size_t start) {
     if (index <= start) return 0;
     return (estimatedRowWidth + estimatedRowSpace) * (index - start);
 }
 
-void HRecyclerFrame::cellsRecyclingLoop() {
+void DynamicBox::cellsRecyclingLoop() {
     if (!dataSource) return;
     brls::Rect visibleFrame = getVisibleFrame();
     float cellWidth = estimatedRowWidth + estimatedRowSpace;
@@ -170,7 +170,7 @@ void HRecyclerFrame::cellsRecyclingLoop() {
         queueReusableCell(minCell);
         this->removeCell(minCell);
 
-        brls::Logger::verbose("HRecyclerFrame Cell #{} - destroyed", visibleMin);
+        brls::Logger::verbose("DynamicBox Cell #{} - destroyed", visibleMin);
 
         visibleMin++;
     }
@@ -188,7 +188,7 @@ void HRecyclerFrame::cellsRecyclingLoop() {
         queueReusableCell(maxCell);
         this->removeCell(maxCell);
 
-        brls::Logger::verbose("HRecyclerFrame Cell #{} - destroyed", visibleMax);
+        brls::Logger::verbose("DynamicBox Cell #{} - destroyed", visibleMax);
 
         visibleMax--;
     }
@@ -205,21 +205,21 @@ void HRecyclerFrame::cellsRecyclingLoop() {
             requestNextPage = false;  // 允许加载下一页
             break;
         }
-        brls::Logger::debug("HRecyclerFrame Cell #{} - added right", visibleMax + 1);
+        brls::Logger::debug("DynamicBox Cell #{} - added right", visibleMax + 1);
         addCellAt(visibleMax + 1, true);
     }
 
     if (this->visibleMax + 1 >= dataSource->getItemCount() && dataSource->getItemCount() > 0) {
         // 只有当 requestNextPage 为false时，才可以请求下一页，避免多次重复请求
         if (!this->requestNextPage && this->nextPageCallback) {
-            brls::Logger::debug("HRecyclerFrame request next page");
+            brls::Logger::debug("DynamicBox request next page");
             requestNextPage = true;
             this->nextPageCallback();
         }
     }
 }
 
-void HRecyclerFrame::addCellAt(size_t index, int downSide) {
+void DynamicBox::addCellAt(size_t index, int downSide) {
     //获取到一个填充好数据的cell
     RecyclingGridItem* cell = dataSource->cellForRow(this, index);
 
@@ -250,26 +250,26 @@ void HRecyclerFrame::addCellAt(size_t index, int downSide) {
     if (!downSide) renderedFrame.origin.x -= cellWidth;
     renderedFrame.size.width += cellWidth;
 
-    brls::Logger::verbose("HRecyclerFrame Cell #{} - added", index);
+    brls::Logger::verbose("DynamicBox Cell #{} - added", index);
 }
 
-void HRecyclerFrame::onLayout() {
+void DynamicBox::onLayout() {
     HScrollingFrame::onLayout();
     this->contentBox->setHeight(this->getHeight());
     if (checkHeight()) {
-        brls::Logger::debug("HRecyclerFrame::onLayout reloadData()");
+        brls::Logger::debug("DynamicBox::onLayout reloadData()");
         layouted = true;
         reloadData();
     }
 }
 
-void HRecyclerFrame::draw(
+void DynamicBox::draw(
     NVGcontext* vg, float x, float y, float width, float height, brls::Style style, brls::FrameContext* ctx) {
     this->cellsRecyclingLoop();
     HScrollingFrame::draw(vg, x, y, width, height, style, ctx);
 }
 
-bool HRecyclerFrame::checkHeight() {
+bool DynamicBox::checkHeight() {
     float height = getHeight();
     if (oldHeight == -1) {
         oldHeight = height;
@@ -282,9 +282,9 @@ bool HRecyclerFrame::checkHeight() {
     return false;
 }
 
-void HRecyclerFrame::setPadding(float padding) { this->setPadding(padding, padding, padding, padding); }
+void DynamicBox::setPadding(float padding) { this->setPadding(padding, padding, padding, padding); }
 
-void HRecyclerFrame::setPadding(float top, float right, float bottom, float left) {
+void DynamicBox::setPadding(float top, float right, float bottom, float left) {
     paddingTop = top;
     paddingRight = right;
     paddingBottom = bottom;
@@ -293,26 +293,26 @@ void HRecyclerFrame::setPadding(float top, float right, float bottom, float left
     this->reloadData();
 }
 
-void HRecyclerFrame::setPaddingTop(float top) {
+void DynamicBox::setPaddingTop(float top) {
     paddingTop = top;
     this->reloadData();
 }
 
-void HRecyclerFrame::setPaddingRight(float right) {
+void DynamicBox::setPaddingRight(float right) {
     paddingRight = right;
     this->reloadData();
 }
 
-void HRecyclerFrame::setPaddingBottom(float bottom) {
+void DynamicBox::setPaddingBottom(float bottom) {
     paddingBottom = bottom;
     this->reloadData();
 }
 
-void HRecyclerFrame::setPaddingLeft(float left) {
+void DynamicBox::setPaddingLeft(float left) {
     paddingLeft = left;
     this->reloadData();
 }
 
-void HRecyclerFrame::onNextPage(const std::function<void()>& callback) { this->nextPageCallback = callback; }
+void DynamicBox::onNextPage(const std::function<void()>& callback) { this->nextPageCallback = callback; }
 
-brls::View* HRecyclerFrame::create() { return new HRecyclerFrame(); }
+brls::View* DynamicBox::create() { return new DynamicBox(); }

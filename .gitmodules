@@ -5,3 +5,9 @@
 [submodule "library/lunasvg"]
 	path = library/lunasvg
 	url = https://github.com/sammycage/lunasvg
+[submodule "library/stremioc"]
+	path = library/stremioc
+	url = https://github.com/jvrcruzTech/stremioc.git
+[submodule "library/mpv"]
+	path = library/mpv
+	url = https://github.com/mpv-player/mpv.git

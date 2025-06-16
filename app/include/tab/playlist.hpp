@@ -1,7 +1,6 @@
 #pragma once
 
 #include <borealis.hpp>
-#include <api/jellyfin/media.hpp>
 
 class RecyclingGrid;
 
