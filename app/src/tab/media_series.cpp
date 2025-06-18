@@ -5,12 +5,11 @@
 #include "activity/player_view.hpp"
 #include "api/jellyfin.hpp"
 #include "tab/media_series.hpp"
-#include "view/h_recycling.hpp"
+#include "view/dynamic_box.hpp"
 #include "view/auto_tab_frame.hpp"
 #include "view/svg_image.hpp"
 #include "view/text_box.hpp"
 #include "view/video_card.hpp"
-#include "view/people_source.hpp"
 #include "view/video_source.hpp"
 #include "view/presenter.hpp"
 #include <fmt/ranges.h>

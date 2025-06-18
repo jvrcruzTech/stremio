@@ -6,13 +6,15 @@
 
 #include <borealis.hpp>
 #include <view/presenter.hpp>
+#include "view/dynamic_box.hpp"
+#include <addons.hpp>
 
 class HRecyclerFrame;
 class TextBox;
 
 class MediaMovie : public brls::Box, public Presenter {
 public:
-    MediaMovie(const jellyfin::Item& item);
+    MediaMovie(Meta item);
     ~MediaMovie() override;
 
 private:
@@ -25,8 +27,8 @@ private:
     BRLS_BIND(brls::Label, labelGenres, "movie/label/genres");
     BRLS_BIND(brls::Header, labelSimilar, "movie/label/similar");
     BRLS_BIND(brls::Button, btnPlay, "movie/play");
-    BRLS_BIND(HRecyclerFrame, people, "movie/people");
-    BRLS_BIND(HRecyclerFrame, similar, "movie/similar");
+    BRLS_BIND(DynamicBox, people, "movie/people");
+    BRLS_BIND(DynamicBox, similar, "movie/similar");
 
     void doRequest() override;
     void doMovie();

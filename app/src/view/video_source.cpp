@@ -84,17 +84,7 @@ void VideoDataSource::onItemSelected(brls::Box* recycler, size_t index) {
     if (item.getType() == jellyfin::mediaTypeSeries) {
         recycler->present(new MediaSeries(item));
     } else if (item.getType() == jellyfin::mediaTypeMovie) {
-        if (this->resume) {
-            PlayerView* view = new PlayerView(item);
-            view->setTitie(item.ProductionYear ? fmt::format("{} ({})", item, item.ProductionYear) : item.Name);
-        } else {
-            recycler->present(new MediaMovie(item));
-        }
-    } else if (item.getType() == jellyfin::mediaTypePhoto) {
-        auto& conf = AppConfig::instance();
-        std::string query = HTTP::encode_form({{"api_key", conf.getToken()}});
-        std::string url = conf.getUrl() + fmt::format(fmt::runtime(jellyfin::apiDownload), item.getId(), query);
-        brls::Application::pushActivity(new GalleryActivity(url));
+        recycler->present(new MediaMovie(item));
     } else {
         auto dialog = new brls::Dialog(fmt::format("Unsupported media type: {}", item.getType()));
         dialog->addButton("hints/cancel"_i18n, []() {});

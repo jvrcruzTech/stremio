@@ -18,6 +18,15 @@ void StremioAPI::init() {
         return;
     }
 
+    Logger::overrideLogger([](const std::string& message) {
+        brls::Logger::info("StremioAPI: {}", message);
+    });
+    
+    StremioAPI::login(
+        AppConfig::instance().getUser().email,
+        AppConfig::instance().getUser().passwd
+    );
+
     
     // Fetch addons and catalogs
     AddonCollection::updateAddonCollection();
